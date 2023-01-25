@@ -27,6 +27,7 @@ import ij.gui.Roi;
 import io.github.petebankhead.imagej.jts.geojson.Feature;
 import io.github.petebankhead.imagej.jts.geojson.FeatureCollection;
 import io.github.petebankhead.imagej.jts.geojson.GeometryTypeAdapter;
+import io.github.petebankhead.imagej.jts.geojson.GsonUtils;
 
 class RoiToGeometryConverterTest {
 
@@ -95,11 +96,9 @@ class RoiToGeometryConverterTest {
 	@Test
 	void serializeFeatureCollection() {
 		FeatureCollection featureCollection = RoiToGeometryConverter.convertToFeatureCollection(createRois());
-		Gson gson = new GsonBuilder()
-				.serializeSpecialFloatingPointValues()
-				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter())
+		Gson gson = GsonUtils.newBuilder()
+				.setPrettyPrinting()
 				.create();
-		
 		String json = gson.toJson(featureCollection);
 		System.err.println(json);
 		
