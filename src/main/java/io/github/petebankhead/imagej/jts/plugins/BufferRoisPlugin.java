@@ -38,11 +38,10 @@ public class BufferRoisPlugin implements PlugIn {
 		
 	}
 	
-	private EndCapStyle capStyle = EndCapStyle.ROUND;
-	private double distance = 1.0;
-	private boolean subtractInterior = false;
-	private boolean keepOriginal = false;
-	private boolean doOverlay = false;
+	private static Params lastParams = new Params();
+	
+	private Params params = lastParams;
+	
 
 	@Override
 	public void run(String arg) {
@@ -60,31 +59,33 @@ public class BufferRoisPlugin implements PlugIn {
 		}
 		
 		GenericDialog gd = new GenericDialog(TITLE);
-		gd.addSlider("Distance", -100, 100, distance, 0.5);
-		gd.addEnumChoice("End_cap_style", capStyle);
-		gd.addCheckbox("Subtract_interior", subtractInterior);
-		gd.addCheckbox("Keep_original", keepOriginal);
-		gd.addCheckbox("Do_overlay", doOverlay);
+		gd.addSlider("Distance", -100, 100, lastParams.distance, 0.5);
+		gd.addEnumChoice("End_cap_style", lastParams.capStyle);
+		gd.addCheckbox("Subtract_interior", lastParams.subtractInterior);
+		gd.addCheckbox("Keep_original", lastParams.keepOriginal);
+		gd.addCheckbox("Do_overlay", lastParams.doOverlay);
 		gd.showDialog();
 		
 		if (gd.wasCanceled())
 			return;
 		
-		distance = gd.getNextNumber();
-		capStyle = gd.getNextEnumChoice(EndCapStyle.class);
-		subtractInterior = gd.getNextBoolean();
-		keepOriginal = gd.getNextBoolean();
-		doOverlay = gd.getNextBoolean();
+		params.distance = gd.getNextNumber();
+		params.capStyle = gd.getNextEnumChoice(EndCapStyle.class);
+		params.subtractInterior = gd.getNextBoolean();
+		params.keepOriginal = gd.getNextBoolean();
+		params.doOverlay = gd.getNextBoolean();
+		
+		lastParams = params;
 		
 		RoiBufferer bufferer = new RoiBufferer()
-				.distance(distance)
-				.subtractInterior(subtractInterior)
-				.capStyle(capStyle);
+				.distance(params.distance)
+				.subtractInterior(params.subtractInterior)
+				.capStyle(params.capStyle);
 		
-		if (hasOverlay && doOverlay) {
+		if (hasOverlay && params.doOverlay) {
 			Overlay overlay = imp.getOverlay();
 			Roi[] rois = overlay.toArray();
-			if (!keepOriginal)
+			if (!params.keepOriginal)
 				overlay.clear();
 			for (Roi roi : rois) {
 				Roi roiBuffered = bufferer.buffer(roi);
@@ -97,17 +98,17 @@ public class BufferRoisPlugin implements PlugIn {
 			Roi roi2 = bufferer.buffer(imp.getRoi());
 			if (roi2 == null) {
 				IJ.showStatus("No ROI remains after buffering!");
-				if (!keepOriginal)
+				if (!params.keepOriginal)
 					imp.killRoi();
 			} else {
-				if (keepOriginal) {
+				if (params.keepOriginal) {
 					Overlay overlay = imp.getOverlay();
 					if (overlay == null)
 						overlay = new Overlay();
 					overlay.add(roi);
 					imp.setOverlay(overlay);
-				} else
-					imp.setRoi(roi2);
+				}
+				imp.setRoi(roi2);
 			}
 		}
 	}
@@ -141,6 +142,17 @@ public class BufferRoisPlugin implements PlugIn {
 		Roi roiBuffered = GeometryToRoiConverter.convertToRoi(geometryBuffered);
 		roiBuffered.copyAttributes(roi);
 		return roiBuffered;
+	}
+	
+	
+	private static class Params {
+		
+		private EndCapStyle capStyle = EndCapStyle.ROUND;
+		private double distance = 1.0;
+		private boolean subtractInterior = false;
+		private boolean keepOriginal = false;
+		private boolean doOverlay = false;
+		
 	}
 	
 	

@@ -15,6 +15,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import ij.IJ;
+import ij.ImagePlus;
+import ij.gui.Overlay;
 import ij.gui.Roi;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
@@ -57,12 +59,32 @@ public class GeoJsonImportPlugin implements PlugIn {
 				}
 			}
 			if (rois != null) {
-				RoiManager rm = RoiManager.getInstance();
-				if (rm == null)
-					rm = new RoiManager();
-				for (Roi r : rois)
-					rm.addRoi(r);
-				rm.setVisible(true);
+				arg = arg.toLowerCase().trim();
+				if ("roimanager".equals(arg)) {
+					RoiManager rm = RoiManager.getInstance();
+					if (rm == null)
+						rm = new RoiManager();
+					for (Roi r : rois)
+						rm.addRoi(r);
+					rm.setVisible(true);
+				} else if ("overlay".equals(arg)) {
+					ImagePlus imp = IJ.getImage();
+					if (imp == null) {
+						IJ.noImage();
+						return;
+					}
+					Overlay overlay = imp.getOverlay();
+					if (overlay == null)
+						overlay = new Overlay();
+					for (Roi r : rois) {
+						overlay.add(r);
+					}
+					imp.setOverlay(overlay);
+				} else if (rois.size() == 1 && IJ.getImage() != null) {
+					IJ.getImage().setRoi(rois.get(0));
+				} else {
+					IJ.error("arg input should be 'overlay' or 'roimanager'!");					
+				}
 			}
 				
 		} catch (IOException e) {
