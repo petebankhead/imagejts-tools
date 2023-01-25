@@ -9,6 +9,7 @@ public class GsonUtils {
 	public static GsonBuilder newBuilder() {
 		return new GsonBuilder()
 				.serializeSpecialFloatingPointValues()
+				.registerTypeAdapter(Feature.class, new FeatureDeserializer())
 				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter());
 	}
 	
