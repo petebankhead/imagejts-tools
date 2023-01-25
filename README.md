@@ -46,3 +46,9 @@ It makes it possible to expand or contract ROIs - and optionally remove the cent
 
 This is a bit like ImageJ's *Edit &rarr; Selection &rarr; Enlarge...* command... but not the same.
 The biggest difference is that it's geometry-based rather than pixel-based, so (in some cases at least) can be more efficient and flexible.
+
+<img src="images/blobs_rois.png" width=50% />
+<br />
+<img src="images/buffer_dialog.png" width=50% />
+<br />
+<img src="images/blobs_rois_buffered.png" width=50% />
