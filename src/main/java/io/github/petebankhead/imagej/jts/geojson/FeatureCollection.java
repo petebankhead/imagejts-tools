@@ -23,6 +23,11 @@ public class FeatureCollection {
 		return type;
 	}
 	
+	@Override
+	public String toString() {
+		return "FeatureCollection [type=" + type + ", features=" + features + "]";
+	}
+
 	public static FeatureCollection wrap(Feature feature) {
 		return wrap(Arrays.asList(feature));
 	}

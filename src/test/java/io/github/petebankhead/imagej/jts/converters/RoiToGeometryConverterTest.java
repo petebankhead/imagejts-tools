@@ -2,8 +2,10 @@ package io.github.petebankhead.imagej.jts.converters;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,6 +24,7 @@ import ij.gui.OvalRoi;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import io.github.petebankhead.imagej.jts.geojson.Feature;
 import io.github.petebankhead.imagej.jts.geojson.FeatureCollection;
 import io.github.petebankhead.imagej.jts.geojson.GeometryTypeAdapter;
 
@@ -67,13 +70,25 @@ class RoiToGeometryConverterTest {
 				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter())
 				.create();
 			
+		roi.setGroup(2);
+		roi.setStrokeWidth(4.0);
+		roi.setStrokeColor(Color.RED);
+		roi.setFillColor(Color.BLUE);
 		roi.setPosition(2, 3, 4);
+		roi.setName(UUID.randomUUID().toString());
 		String json = gson.toJson(RoiToGeometryConverter.convertToFeature(roi));
-//		String json = gson.toJson(RoiToGeometryConverter.convertToGeometry(roi));
-//		String json = gson.toJson(roi);
-		System.err.println(json);
+//		System.err.println(json);
 		assertNotNull(json);
 		
+		Feature feature = gson.fromJson(json, Feature.class);
+		Roi roiNew = GeometryToRoiConverter.convertToRoi(feature);
+		
+		assertEquals(roi.getStrokeWidth(), roiNew.getStrokeWidth());
+		assertEquals(roi.getName(), roiNew.getName());
+		assertEquals(roi.getGroup(), roiNew.getGroup());
+		assertEquals(roi.getStrokeColor(), roiNew.getStrokeColor());
+		assertEquals(roi.getFillColor(), roiNew.getFillColor());
+//		System.err.println(feature);
 	}
 	
 	

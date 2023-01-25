@@ -124,7 +124,10 @@ public class RoiToGeometryConverter {
 			if (groupName != null)
 				map.put("groupName", groupName);
 		}
-		
+
+		if (roi.getStrokeWidth() != Roi.getDefaultStrokeWidth())
+			map.put("strokeWidth", roi.getStrokeWidth());
+
 		if (roi.getStrokeColor() != null)
 			map.put("strokeColor", colorToIntArray(roi.getStrokeColor()));
 		

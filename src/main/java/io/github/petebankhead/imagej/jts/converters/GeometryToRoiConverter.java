@@ -1,10 +1,14 @@
 package io.github.petebankhead.imagej.jts.converters;
 
+import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+
 import org.locationtech.jts.awt.ShapeWriter;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -23,6 +27,7 @@ import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.process.FloatPolygon;
+import io.github.petebankhead.imagej.jts.geojson.Feature;
 
 
 public class GeometryToRoiConverter {
@@ -31,6 +36,81 @@ public class GeometryToRoiConverter {
 	public static Roi convertToRoi(Geometry geometry) {
 		return new GeometryToRoiConverter().geometryToRoi(geometry);
 	}
+	
+	
+	public static Roi convertToRoi(Feature feature) {
+		return new GeometryToRoiConverter().featureToRoi(feature);
+	}
+	
+	
+	public Roi featureToRoi(Feature feature) {
+		Roi roi = geometryToRoi(feature.getGeometry());
+		Map<String, ?> properties = feature.getProperties();
+		
+		Object imagejProperties = properties.getOrDefault("imagej", null);
+		if (imagejProperties instanceof Map)
+			applyImageJPropertiesToRoi(roi, (Map)imagejProperties);	
+		
+		Object planeProperties = properties.getOrDefault("plane", null);
+		if (planeProperties instanceof Map)
+			applyPlanePropertiesToRoi(roi, (Map)planeProperties);	
+
+		return roi;
+	}
+	
+	private static void applyImageJPropertiesToRoi(Roi roi, Map<?, ?> imageJProperties) {
+		String name = tryToGetValue(imageJProperties, "name", String.class, roi.getName());
+		Number group = tryToGetValue(imageJProperties, "group", Number.class, Roi.getDefaultGroup());
+//		String roiType = tryToGetValue(imageJProperties, "type", String.class, null);
+		Number position = tryToGetValue(imageJProperties, "position", Number.class, roi.getPosition());
+		Number strokeWidth = tryToGetValue(imageJProperties, "strokeWidth", Number.class, roi.getStrokeWidth());
+		Color strokeColor = tryToGetColor(imageJProperties, "strokeColor");
+		Color fillColor = tryToGetColor(imageJProperties, "fillColor");
+		
+		roi.setName(name);
+		roi.setGroup(group.intValue());
+		roi.setPosition(position.intValue());
+		roi.setStrokeWidth(strokeWidth.doubleValue());
+		if (strokeColor != null)
+			roi.setStrokeColor(strokeColor);
+		if (fillColor != null)
+			roi.setFillColor(fillColor);
+	}
+	
+	private static void applyPlanePropertiesToRoi(Roi roi, Map<?, ?> planeProperties) {
+		Number c = tryToGetValue(planeProperties, "c", Number.class, -1);
+		Number z = tryToGetValue(planeProperties, "z", Number.class, -1);
+		Number t = tryToGetValue(planeProperties, "t", Number.class, -1);
+		roi.setPosition(c.intValue()+1, z.intValue()+1, t.intValue()+1);
+	}
+	
+	private static <T> T tryToGetValue(Map<?, ?> map, String key, Class<T> cls, T defaultValue) {
+		Object value = map.getOrDefault(key, null);
+		if (value != null && cls.isAssignableFrom(value.getClass()))
+			return (T)value;
+		return defaultValue;
+	}
+	
+	private static Color tryToGetColor(Map<?, ?> map, String key) {
+		Object value = map.getOrDefault(key, null);
+		int[] array = null;
+		if (value instanceof List) {
+			array = ((List<?>)value).stream()
+				.filter(p -> p instanceof Number)
+				.map(p -> (Number)p)
+				.mapToInt(p -> p.intValue())
+				.toArray();
+		} else if (value instanceof int[])
+			array = (int[])value;
+		if (array != null) {
+			if (array.length == 3)
+				return new Color(array[0], array[1], array[2]);
+			else if (array.length == 4)
+				return new Color(array[0], array[1], array[2], array[3]);
+		}
+		return null;
+	}
+	
 	
 	public Roi geometryToRoi(Geometry geometry) {
 		

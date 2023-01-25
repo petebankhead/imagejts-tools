@@ -32,6 +32,12 @@ public class Feature {
 			return Collections.unmodifiableMap(properties);
 	}
 	
+	
+	@Override
+	public String toString() {
+		return "Feature [type=" + type + ", geometry=" + geometry + ", properties=" + properties + "]";
+	}
+
 	public static Feature create(Geometry geometry, Map<String, ?> properties) {
 		return new Feature(geometry, properties);
 	}
