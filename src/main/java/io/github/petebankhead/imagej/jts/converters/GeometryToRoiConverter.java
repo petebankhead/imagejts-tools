@@ -27,6 +27,11 @@ import ij.process.FloatPolygon;
 
 public class GeometryToRoiConverter {
 	
+	
+	public static Roi convertToRoi(Geometry geometry) {
+		return new GeometryToRoiConverter().geometryToRoi(geometry);
+	}
+	
 	public Roi geometryToRoi(Geometry geometry) {
 		
 		geometry = homogenizeGeometryCollection(geometry);

@@ -3,6 +3,7 @@ package io.github.petebankhead.imagej.jts.geojson;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class FeatureCollection {
@@ -14,6 +15,13 @@ public class FeatureCollection {
 		this.features = new ArrayList<>(features);
 	}
 	
+	public List<Feature> getFeatures() {
+		return Collections.unmodifiableList(features);
+	}
+	
+	public String getType() {
+		return type;
+	}
 	
 	public static FeatureCollection wrap(Feature feature) {
 		return wrap(Arrays.asList(feature));
