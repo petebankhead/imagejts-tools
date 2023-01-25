@@ -1,4 +1,4 @@
-package io.github.petebankhead.imagej.geojson;
+package io.github.petebankhead.imagej.jts.converters;
 
 import java.awt.Shape;
 import java.awt.geom.Area;
@@ -9,7 +9,6 @@ import org.locationtech.jts.awt.ShapeWriter;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Lineal;
 import org.locationtech.jts.geom.MultiLineString;
@@ -27,8 +26,6 @@ import ij.process.FloatPolygon;
 
 
 public class GeometryToRoiConverter {
-	
-	private GeometryFactory factory;
 	
 	public Roi geometryToRoi(Geometry geometry) {
 		

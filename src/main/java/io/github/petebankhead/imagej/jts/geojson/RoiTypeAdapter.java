@@ -1,4 +1,4 @@
-package io.github.petebankhead.imagej.geojson;
+package io.github.petebankhead.imagej.jts.geojson;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -29,6 +29,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import ij.gui.Roi;
+import io.github.petebankhead.imagej.jts.converters.RoiToGeometryConverter;
 
 public class RoiTypeAdapter extends TypeAdapter<Roi> {
 	
@@ -359,7 +360,7 @@ public class RoiTypeAdapter extends TypeAdapter<Roi> {
 		List<Geometry> geometries = new ArrayList<>();
 		for (int i = 0; i < array.size(); i++)
 			geometries.add(parseGeometry(array.get(i).getAsJsonObject(), factory));
-		return new GeometryCollection(geometries.toArray(Geometry[]::new), factory);
+		return new GeometryCollection(geometries.toArray(new Geometry[0]), factory);
 	}
 	
 }

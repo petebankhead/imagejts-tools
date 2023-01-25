@@ -1,4 +1,4 @@
-package io.github.petebankhead.imagej.geojson;
+package io.github.petebankhead.imagej.jts.converters;
 
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
@@ -63,7 +63,7 @@ public class RoiToGeometryConverter {
 			return createLineString(roi.getFloatPolygon());
 		default:
 			Shape shape = new ShapeRoi(roi).getShape();
-			return shapeToGeometry(shape, null);
+			return shapeToGeometry(shape, AffineTransform.getTranslateInstance(roi.getXBase(), roi.getYBase()));
 		}
 	}
 	

@@ -1,4 +1,4 @@
-package io.github.petebankhead.imagej.geojson;
+package io.github.petebankhead.imagej.jts.converters;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,6 +21,7 @@ import ij.gui.OvalRoi;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import io.github.petebankhead.imagej.jts.geojson.RoiTypeAdapter;
 
 class RoiToGeometryConverterTest {
 
@@ -42,7 +43,14 @@ class RoiToGeometryConverterTest {
 		}
 		
 		Roi roi2 = new GeometryToRoiConverter().geometryToRoi(geom);
-		System.out.println(roi2);
+		System.out.println(roi + " -> " + roi2);
+		
+		// TODO: Consider EllipseRois separately - x/y base doesn't mean quite the same thing
+		// and GeoJSON export involves switching type to polygon
+		if (!(roi instanceof EllipseRoi)) {
+			assertEquals(roi.getXBase(), roi2.getXBase(), 0.1);
+			assertEquals(roi.getYBase(), roi2.getYBase(), 0.1);
+		}
 		
 	}
 	
