@@ -1,4 +1,4 @@
-# IJTS Tools
+# ImageJTS Tools
 
 This repo contains a *very* early and *very* rough implementation of **[Java Topology Suite](https://github.com/locationtech/jts)** (JTS) support for **[ImageJ](https://imagej.net)** (IJ).
 
