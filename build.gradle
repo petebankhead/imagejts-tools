@@ -1,0 +1,84 @@
+plugins {
+  id 'java-library'
+  id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+repositories {
+
+  mavenCentral()
+
+}
+
+archivesBaseName = 'imagej_jts_plugins'
+description = 'Support for converting ImageJ ROIs to/from JTS & GeoJSON'
+
+version = "0.0.1-SNAPSHOT"
+
+dependencies {
+	implementation 'org.locationtech.jts:jts-core:1.19.0'
+//	implementation 'org.locationtech.jts.io:jts-io-common:1.19.0'
+	implementation 'net.imagej:ij:1.54b'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.1"
+}
+
+processResources {
+  from ("${projectDir}/LICENSE") {
+    into 'licenses/'
+  }
+}
+
+/*
+ * Ensure Java 8 compatibility
+ */
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+/*
+ * Set module info
+ */
+tasks.named('compileJava') {
+    // use the project's version or define one directly
+    options.javaModuleVersion = provider { project.version }
+    options.encoding = 'UTF-8'
+}
+
+/*
+ * Manifest info
+ */
+jar {
+    manifest {
+        attributes("Implementation-Title": project.name,
+                   "Implementation-Version": archiveVersion)
+    }
+}
+
+/*
+ * Create javadocs for all modules/packages in one place.
+ * Use -PstrictJavadoc=true to fail on error with doclint (which is rather strict).
+ */
+tasks.withType(Javadoc) {
+	options.encoding = 'UTF-8'
+	def strictJavadoc = findProperty('strictJavadoc')
+	if (!strictJavadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+	}
+}
+
+/*
+ * Avoid 'Entry .gitkeep is a duplicate but no duplicate handling strategy has been set.'
+ * when using withSourcesJar()
+ */
+tasks.withType(org.gradle.jvm.tasks.Jar) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
