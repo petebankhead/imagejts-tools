@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Geometry;
@@ -21,7 +22,8 @@ import ij.gui.OvalRoi;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
-import io.github.petebankhead.imagej.jts.geojson.RoiTypeAdapter;
+import io.github.petebankhead.imagej.jts.geojson.FeatureCollection;
+import io.github.petebankhead.imagej.jts.geojson.GeometryTypeAdapter;
 
 class RoiToGeometryConverterTest {
 
@@ -46,7 +48,7 @@ class RoiToGeometryConverterTest {
 		System.out.println(roi + " -> " + roi2);
 		
 		// TODO: Consider EllipseRois separately - x/y base doesn't mean quite the same thing
-		// and GeoJSON export involves switching type to polygon
+		// and geometry conversion involves switching type to polygon
 		if (!(roi instanceof EllipseRoi)) {
 			assertEquals(roi.getXBase(), roi2.getXBase(), 0.1);
 			assertEquals(roi.getYBase(), roi2.getYBase(), 0.1);
@@ -62,17 +64,31 @@ class RoiToGeometryConverterTest {
 		Gson gson = new GsonBuilder()
 				.setPrettyPrinting()
 				.serializeSpecialFloatingPointValues()
-				.registerTypeHierarchyAdapter(Roi.class, new RoiTypeAdapter())
+				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter())
 				.create();
 			
 		roi.setPosition(2, 3, 4);
-		String json = gson.toJson(roi);
+		String json = gson.toJson(RoiToGeometryConverter.convertToFeature(roi));
+//		String json = gson.toJson(RoiToGeometryConverter.convertToGeometry(roi));
+//		String json = gson.toJson(roi);
 		System.err.println(json);
 		assertNotNull(json);
 		
 	}
 	
 	
+	@Test
+	void serializeFeatureCollection() {
+		FeatureCollection featureCollection = RoiToGeometryConverter.convertToFeatureCollection(createRois());
+		Gson gson = new GsonBuilder()
+				.serializeSpecialFloatingPointValues()
+				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter())
+				.create();
+		
+		String json = gson.toJson(featureCollection);
+		System.err.println(json);
+		
+	}
 	
 	
 	

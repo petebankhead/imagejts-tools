@@ -1,5 +1,6 @@
 package io.github.petebankhead.imagej.jts.converters;
 
+import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
@@ -8,7 +9,11 @@ import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.locationtech.jts.awt.ShapeReader;
@@ -24,6 +29,8 @@ import org.locationtech.jts.util.GeometricShapeFactory;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.process.FloatPolygon;
+import io.github.petebankhead.imagej.jts.geojson.Feature;
+import io.github.petebankhead.imagej.jts.geojson.FeatureCollection;
 
 
 public class RoiToGeometryConverter {
@@ -31,6 +38,32 @@ public class RoiToGeometryConverter {
 	private GeometryFactory factory;
 	
 	private double flatness = 0.1;
+	
+	
+	public static Feature convertToFeature(Roi roi) {
+		return Feature.create(
+				convertToGeometry(roi),
+				createPropertyMapFromRoi(roi));
+	}
+	
+	public static FeatureCollection convertToFeatureCollection(Roi... rois) {
+		return convertToFeatureCollection(Arrays.asList(rois));
+	}
+	
+	public static FeatureCollection convertToFeatureCollection(Collection<? extends Roi> rois) {
+		List<Feature> features = new ArrayList<>();
+		for (Roi roi : rois) {
+			features.add(convertToFeature(roi));
+		}
+		return FeatureCollection.wrap(features);
+	}
+	
+	public static Geometry convertToGeometry(Roi roi) {
+		RoiToGeometryConverter converter = new RoiToGeometryConverter();
+		return converter.roiToGeometry(roi);
+	}
+
+	
 	
 	public RoiToGeometryConverter() {
 		this(new GeometryFactory(
@@ -50,6 +83,72 @@ public class RoiToGeometryConverter {
 	public double getFlatness() {
 		return flatness;
 	}
+	
+	
+	public static Map<String, ?> createPropertyMapFromRoi(Roi roi) {
+		Map<String, Object> map = new LinkedHashMap<>();
+		
+		// Following QuPath, which uses zero-based indexing and a 'plane' property
+		if (roi.getCPosition() > 0 || roi.getTPosition() > 0 || roi.getZPosition() > 0)
+			map.put("plane", createPlanePropertyMap(roi));
+		
+		// Following QuPath, add 'Group name' as a classification
+		String groupName = Roi.getGroupName(roi.getGroup());
+		if (groupName != null && !groupName.isEmpty())
+			map.put("classification", groupName);
+		
+		// Add extra ImageJ-specific properties, if available
+		Map<String, ?> ijProperties = createImageJPropertyMap(roi);
+		if (!ijProperties.isEmpty())
+			map.put("imagej", ijProperties);
+		
+		return map;
+	}
+	
+	private static Map<String, ?> createImageJPropertyMap(Roi roi) {
+		Map<String, Object> map = new LinkedHashMap<>();
+
+		map.put("type", roi.getTypeAsString());
+		
+		if (roi.getName() != null) {
+			map.put("name", roi.getName());					
+		}
+		
+		if (roi.getPosition() > 0) {
+			map.put("position", roi.getPosition());					
+		}
+
+		if (roi.getGroup() != Roi.getDefaultGroup()) {
+			map.put("group", roi.getGroup());
+			String groupName = Roi.getGroupName(roi.getGroup());
+			if (groupName != null)
+				map.put("groupName", groupName);
+		}
+		
+		if (roi.getStrokeColor() != null)
+			map.put("strokeColor", colorToIntArray(roi.getStrokeColor()));
+		
+		if (roi.getFillColor() != null)
+			map.put("fillColor", colorToIntArray(roi.getFillColor()));
+				
+		return map;
+	}
+	
+	private static int[] colorToIntArray(Color color) {
+		if (color.getAlpha() == 255)
+			return new int[] {color.getRed(), color.getGreen(), color.getBlue()};
+		else
+			return new int[] {color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()};
+	}
+	
+	private static Map<String, Integer> createPlanePropertyMap(Roi roi) {
+		Map<String, Integer> map = new LinkedHashMap<>();
+		map.put("c", roi.getCPosition()-1);
+		map.put("z", roi.getZPosition()-1);
+		map.put("t", roi.getTPosition()-1);
+		return map;
+	}
+	
 	
 	public Geometry roiToGeometry(Roi roi) {
 		switch (roi.getType()) {

@@ -1,6 +1,5 @@
 package io.github.petebankhead.imagej.jts.geojson;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -8,7 +7,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -19,29 +17,26 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.Puntal;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.TypeAdapter;
-import com.google.gson.internal.Streams;
 import com.google.gson.internal.bind.TypeAdapters;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import ij.gui.Roi;
-import io.github.petebankhead.imagej.jts.converters.RoiToGeometryConverter;
-
-public class RoiTypeAdapter extends TypeAdapter<Roi> {
+public class GeometryTypeAdapter extends TypeAdapter<Geometry> {
 	
 	private NumberFormat nf;
-	private boolean asFeature = true;
 	private GeometryFactory factory = new GeometryFactory();
 	
-	public RoiTypeAdapter() {
+	public GeometryTypeAdapter() {
 		this(3);
 	}
 	
-	public RoiTypeAdapter(int numDecimalPlaces) {
+	public GeometryTypeAdapter(int numDecimalPlaces) {
 		nf = NumberFormat.getInstance(Locale.US);
 		nf.setGroupingUsed(false);
 		nf.setMaximumFractionDigits(numDecimalPlaces);
@@ -49,96 +44,27 @@ public class RoiTypeAdapter extends TypeAdapter<Roi> {
 	
 
 	@Override
-	public void write(JsonWriter out, Roi roi) throws IOException {
-		
-		out.beginObject();
-		
-		if (roi != null) {
-
-			Geometry geometry = new RoiToGeometryConverter().roiToGeometry(roi);
-
-			if (asFeature) {
-				out.name("type");
-				out.value("feature");
-				out.name("geometry");
-				out.beginObject();
-				writeGeometry(geometry, out);
-				out.endObject();
-				out.name("properties");
-				out.beginObject();
-				if (roi.getCPosition() > 0) {
-					out.name("c");
-					out.value(roi.getCPosition());
-				}
-				if (roi.getZPosition() > 0) {
-					out.name("z");
-					out.value(roi.getZPosition());
-				}
-				if (roi.getTPosition() > 0) {
-					out.name("t");
-					out.value(roi.getTPosition());
-				}
-				if (roi.getPosition() > 0) {
-					out.name("position");
-					out.value(roi.getTPosition());					
-				}
-				if (roi.getName() != null) {
-					out.name("name");
-					out.value(roi.getName());										
-				}
-				String group = Roi.getGroupName(roi.getGroup());
-				if (group != null) {
-					out.name("group");
-					out.value(group);															
-				}
-				Color strokeColor = roi.getStrokeColor();
-				if (strokeColor != null) {
-					writeColor(out, "strokeColor", strokeColor);
-				}
-				Color fillColor = roi.getFillColor();
-				if (fillColor != null) {
-					writeColor(out, "fillColor", fillColor);
-				}
-				out.endObject();
-			} else {
-				writeGeometry(geometry, out);
-			}
-			
+	public void write(JsonWriter out, Geometry geometry) throws IOException {
+		if (geometry == null) {
+			out.nullValue();
+		} else {
+			out.beginObject();
+			writeGeometry(geometry, out);
+			out.endObject();
 			// TODO: Consider adding flag for ellipse/oval ROIs
-			
 		}
-					
-		out.endObject();
-	}
-	
-	
-	private static void writeColor(JsonWriter out, String name, Color color) throws IOException {
-		out.name(name);
-		out.beginArray();
-		out.value(color.getRed());
-		out.value(color.getGreen());
-		out.value(color.getBlue());
-		out.endArray();
 	}
 	
 
 	@Override
-	public Roi read(JsonReader in) throws IOException {
-		
-		JsonObject obj = (JsonObject)TypeAdapters.JSON_ELEMENT.read(in);
-		JsonObject geomObj;
-		JsonObject propertiesObj;
-		if ("feature".equals(obj.get("type"))) {
-			propertiesObj = obj.has("properties") ? obj.get("properties").getAsJsonObject() : null;
-			geomObj = propertiesObj.get("geometry").getAsJsonObject();
-		} else {
-			propertiesObj = null;
-			geomObj = obj;
-		}
-		
-		
-		// TODO Auto-generated method stub
-		return null;
+	public Geometry read(JsonReader in) throws IOException {
+		JsonElement element = TypeAdapters.JSON_ELEMENT.read(in);
+		if (element.isJsonObject())
+			return parseGeometry(element.getAsJsonObject(), factory);
+		else if (element.isJsonNull())
+			return null;
+		else
+			throw new IOException("Unable to parse Geometry from ");
 	}
 	
 	
@@ -152,10 +78,12 @@ public class RoiTypeAdapter extends TypeAdapter<Roi> {
 	 */
 	private void writeGeometry(Geometry geometry, JsonWriter out) throws IOException {
 		String type = geometry.getGeometryType();
+		
 		out.name("type");
 		out.value(type);
 
-		if ("GeometryCollection".equals(geometry.getGeometryType())) {
+		if ("GeometryCollection".equals(geometry.getGeometryType()) && !(geometry instanceof Puntal)) {
+			out.name("geometries");
 			out.beginArray();
 			for (int i = 0; i < geometry.getNumGeometries(); i++) {
 				writeGeometry(geometry.getGeometryN(i), out);
@@ -204,7 +132,7 @@ public class RoiTypeAdapter extends TypeAdapter<Roi> {
 			out.jsonValue(coordinateToString(c));
 		out.endArray();
 	}
-
+	
 	private void writeCoordinates(Polygon polygon, JsonWriter out) throws IOException {
 		out.beginArray();
 		writeCoordinates(polygon.getExteriorRing(), out);
@@ -212,36 +140,18 @@ public class RoiTypeAdapter extends TypeAdapter<Roi> {
 			writeCoordinates(polygon.getInteriorRingN(i), out);
 		out.endArray();
 	}
-
+	
+	private void writeCoordinates(MultiLineString multiLineString, JsonWriter out) throws IOException {
+		out.beginArray();
+		for (int i = 0; i < multiLineString.getNumGeometries(); i++)
+			writeCoordinates(multiLineString.getGeometryN(i), out);
+		out.endArray();
+	}
+	
 	private void writeCoordinates(MultiPolygon multiPolygon, JsonWriter out) throws IOException {
 		out.beginArray();
 		for (int i = 0; i < multiPolygon.getNumGeometries(); i++)
 			writeCoordinates(multiPolygon.getGeometryN(i), out);
-		out.endArray();
-	}
-
-
-	private void writeMultiPoint(MultiPoint multiPoint, JsonWriter out) throws IOException {
-		out.name("type");
-		out.value("MultiPoint");
-		
-		out.name("coordinates");
-		out.beginArray();
-		Coordinate[] coords = multiPoint.getCoordinates();
-		for (Coordinate c : coords)
-			out.jsonValue(coordinateToString(c));
-		out.endArray();
-	}
-
-	private void writeLineString(LineString lineString, JsonWriter out) throws IOException {
-		out.name("type");
-		out.value("LineString");
-		
-		out.name("coordinates");
-		out.beginArray();
-		CoordinateSequence coords = lineString.getCoordinateSequence();
-		for (int i = 0; i < coords.size(); i++)
-			out.jsonValue(coordinateToString(coords.getX(i), coords.getY(i)));
 		out.endArray();
 	}
 

@@ -3,7 +3,6 @@ package io.github.petebankhead.imagej.jts.plugins;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -12,10 +11,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.locationtech.jts.geom.Geometry;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Overlay;
@@ -23,7 +22,10 @@ import ij.gui.Roi;
 import ij.io.SaveDialog;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
-import io.github.petebankhead.imagej.jts.geojson.RoiTypeAdapter;
+import io.github.petebankhead.imagej.jts.converters.RoiToGeometryConverter;
+import io.github.petebankhead.imagej.jts.geojson.Feature;
+import io.github.petebankhead.imagej.jts.geojson.FeatureCollection;
+import io.github.petebankhead.imagej.jts.geojson.GeometryTypeAdapter;
 
 public class GeoJsonExportPlugin implements PlugIn {
 
@@ -131,22 +133,23 @@ public class GeoJsonExportPlugin implements PlugIn {
 		return new GsonBuilder()
 				.serializeSpecialFloatingPointValues()
 				.setPrettyPrinting()
-				.registerTypeHierarchyAdapter(Roi.class, new RoiTypeAdapter())
+				.registerTypeHierarchyAdapter(Geometry.class, new GeometryTypeAdapter())
 				.create();
 	}
 	
 	public void exportRoiToGeoJson(Roi roi, String path) throws IOException {
+		Feature feature = RoiToGeometryConverter.convertToFeature(roi);
 		Gson gson = createGson();
 		try (Writer writer = Files.newBufferedWriter(Paths.get(path))) {
-			gson.toJson(roi, writer);			
+			gson.toJson(feature, writer);			
 		}
 	}
 	
 	public void exportRoisToGeoJson(Collection<? extends Roi> rois, String path) throws IOException {
 		Gson gson = createGson();
-		Type exportType = TypeToken.getParameterized(List.class, Roi.class).getType();
+		FeatureCollection featureCollection = RoiToGeometryConverter.convertToFeatureCollection(rois);
 		try (Writer writer = Files.newBufferedWriter(Paths.get(path))) {
-			gson.toJson(rois, exportType, writer);
+			gson.toJson(featureCollection, writer);
 		}
 	}
 	
